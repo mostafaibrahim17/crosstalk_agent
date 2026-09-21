@@ -1,0 +1,10 @@
+python-arango>=8.0.0
+openai>=1.0.0
+python-dotenv>=1.0.0
+matplotlib>=3.7.0
+networkx>=3.0
+
+# Optional: only for the LangGraph framework variant (agent_graph.py)
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langgraph>=0.2.0

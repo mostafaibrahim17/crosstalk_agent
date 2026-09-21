@@ -1,0 +1,152 @@
+{
+  "dr_0001": {
+    "file": "dr_0001.md",
+    "role": "close_match",
+    "title": "Camera lane jitter from an adjacent high-speed signal"
+  },
+  "dr_0002": {
+    "file": "dr_0002.md",
+    "role": "close_match",
+    "title": "Guard trace tames clock-to-data coupling on a shared layer"
+  },
+  "dr_0003": {
+    "file": "dr_0003.md",
+    "role": "close_match",
+    "title": "Display lane errors from a long parallel run, fixed by reroute"
+  },
+  "dr_0004": {
+    "file": "dr_0004.md",
+    "role": "close_match",
+    "title": "Clock-to-data coupling over a long adjacent run"
+  },
+  "dr_0005": {
+    "file": "dr_0005.md",
+    "role": "close_match",
+    "title": "Bit errors cleared by shortening a coupled bus segment"
+  },
+  "dr_0006": {
+    "file": "dr_0006.md",
+    "role": "close_match",
+    "title": "Clock coupling into a serial lane fixed by widening and shielding"
+  },
+  "dr_0007": {
+    "file": "dr_0007.md",
+    "role": "near_miss",
+    "title": "Frequency variation traced to an impedance mismatch"
+  },
+  "dr_0008": {
+    "file": "dr_0008.md",
+    "role": "near_miss",
+    "title": "Rising bit error rate from a ground-plane void"
+  },
+  "dr_0009": {
+    "file": "dr_0009.md",
+    "role": "near_miss",
+    "title": "Eye closure from a via stub, not from coupling"
+  },
+  "dr_0010": {
+    "file": "dr_0010.md",
+    "role": "near_miss",
+    "title": "Jitter from a return-path discontinuity at a layer change"
+  },
+  "dr_0011": {
+    "file": "dr_0011.md",
+    "role": "near_miss",
+    "title": "Clock coupling fixed by edge-rate control, not by spacing"
+  },
+  "dr_0012": {
+    "file": "dr_0012.md",
+    "role": "near_miss",
+    "title": "Bit errors from power-supply ripple on a driver rail"
+  },
+  "dr_0013": {
+    "file": "dr_0013.md",
+    "role": "near_miss",
+    "title": "Intersymbol interference from an under-equalized channel"
+  },
+  "dr_0014": {
+    "file": "dr_0014.md",
+    "role": "near_miss",
+    "title": "Reflections from an unterminated stub branch"
+  },
+  "dr_0015": {
+    "file": "dr_0015.md",
+    "role": "near_miss",
+    "title": "Skew-induced errors on a mismatched-length pair"
+  },
+  "dr_0016": {
+    "file": "dr_0016.md",
+    "role": "near_miss",
+    "title": "Connector footprint discontinuity mimicking coupling"
+  },
+  "dr_0017": {
+    "file": "dr_0017.md",
+    "role": "near_miss",
+    "title": "EMI ingress from an external source, not a neighbour trace"
+  },
+  "dr_0018": {
+    "file": "dr_0018.md",
+    "role": "near_miss",
+    "title": "Crosstalk-like errors traced to a noisy ground bounce"
+  },
+  "dr_0019": {
+    "file": "dr_0019.md",
+    "role": "filler",
+    "title": "Thermal derating on a power regulator"
+  },
+  "dr_0020": {
+    "file": "dr_0020.md",
+    "role": "filler",
+    "title": "Silkscreen polarity error on a connector"
+  },
+  "dr_0021": {
+    "file": "dr_0021.md",
+    "role": "filler",
+    "title": "Voltage droop from decoupling capacitor placement"
+  },
+  "dr_0022": {
+    "file": "dr_0022.md",
+    "role": "filler",
+    "title": "Solder bridge on a fine-pitch package"
+  },
+  "dr_0023": {
+    "file": "dr_0023.md",
+    "role": "filler",
+    "title": "Clearance rule violation near a mounting hole"
+  },
+  "dr_0024": {
+    "file": "dr_0024.md",
+    "role": "filler",
+    "title": "Radiated-emissions failure from an unconnected shield"
+  },
+  "dr_0025": {
+    "file": "dr_0025.md",
+    "role": "filler",
+    "title": "Tombstoned passive after reflow"
+  },
+  "dr_0026": {
+    "file": "dr_0026.md",
+    "role": "filler",
+    "title": "Battery-backup current draw exceeding budget"
+  },
+  "dr_0027": {
+    "file": "dr_0027.md",
+    "role": "filler",
+    "title": "Wrong resistor value populating a divider"
+  },
+  "dr_0028": {
+    "file": "dr_0028.md",
+    "role": "filler",
+    "title": "Test point shorting to an adjacent net under probe pressure"
+  },
+  "dr_0029": {
+    "file": "dr_0029.md",
+    "role": "filler",
+    "title": "Acid-trap warning from an acute trace angle"
+  },
+  "dr_0030": {
+    "file": "dr_0030.md",
+    "role": "filler",
+    "title": "Courtyard overlap between two adjacent components"
+  }
+}
