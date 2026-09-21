@@ -1,7 +1,7 @@
 # Explainable Crosstalk Diagnosis on Arango
 
 > A signal-integrity agent that finds the physical adjacency behind a board defect, ranks it,
-> and cites how it was fixed before — as one query over one multimodel store.
+> and cites how it was fixed before, as one query over one multimodel store.
 
 <p align="center">
   <em>A board defect is not a value in one table. It is a relationship between two nets.</em>
@@ -26,10 +26,10 @@ both in a single [AQL](https://docs.arango.ai/arangodb/stable/aql/) query on the
 One store holds three data shapes, and one query path turns a symptom into an explainable,
 cited cause:
 
-- **Design graph** — the KiCad board parsed into nets (nodes) and adjacency edges carrying
+- **Design graph** - the KiCad board parsed into nets (nodes) and adjacency edges carrying
   spacing, parallel length, layer, and trace width.
-- **Vector store** — past defect reports embedded for similarity recall via `APPROX_NEAR_COSINE`.
-- **Knowledge graph** — built by [AutoGraph](https://docs.arango.ai/agentic-ai-suite/autograph/)
+- **Vector store** - past defect reports embedded for similarity recall via `APPROX_NEAR_COSINE`.
+- **Knowledge graph** - built by [AutoGraph](https://docs.arango.ai/agentic-ai-suite/autograph/)
   from the same corpus, cited through the
   [GraphRAG Retriever](https://docs.arango.ai/agentic-ai-suite/graphrag/).
 
@@ -42,7 +42,7 @@ proves the geometry; the agent interprets the cause.
 ## The hero fault
 
 Point the engine at a real Raspberry Pi CM4 IO board with `python src/agent.py auto`. It scans
-every adjacency, scores each one, and diagnoses the worst — no victim is hardcoded:
+every adjacency, scores each one, and diagnoses the worst, with no victim hardcoded:
 
 ```
 === VICTIM ===
@@ -74,7 +74,7 @@ DSI1_D0_N (net_47)  symptom: frequency variation and rising bit error rate
 
 A DSI clock lane running 43 mm alongside a data lane from a *different* camera interface, 0.42 mm
 apart on the bottom layer. The top vector match ("impedance mismatch") is the **wrong** cause,
-sharing the symptom but not the geometry — and the graph corrects it.
+sharing the symptom but not the geometry, and the graph corrects it.
 
 ![Board severity map](assets/board_severity_map.png)
 
@@ -87,8 +87,8 @@ coupling from geometry and reasoning. The Retriever, reading only the chosen cau
 reports about the same mechanism from the knowledge graph. Neither was told the other's answer,
 and they converged.
 
-That convergence is the payoff of one multimodel store. A split stack — a graph database beside
-a vector database — runs two queries, holds partial results in application code, and rebuilds the
+That convergence is the payoff of one multimodel store. A split stack, a graph database beside
+a vector database, runs two queries, holds partial results in application code, and rebuilds the
 join that finds the fault on every request. A vector-only tool has no topology to traverse and
 cannot tell a real adjacency from a look-alike report. Two different shapes of the same store,
 reaching the same mechanism independently, is the confidence a fragmented stack has no way to
@@ -97,7 +97,7 @@ reach.
 ![Severity decomposition](assets/severity_decomposition.png)
 
 The severity score weighs spacing and parallel length equally, because crosstalk accumulates
-along a coupled run. The hero scores **high on length and loudness, low on spacing** — the exact
+along a coupled run. The hero scores **high on length and loudness, low on spacing**, the exact
 profile a proximity-only check misses.
 
 ---
@@ -162,7 +162,6 @@ database to the final figures. It closes with five visuals, all saved to `assets
 | ![rank](assets/severity_ranking.png) | the ten adjacencies ranked; the hero clears the field |
 | ![decomp](assets/severity_decomposition.png) | spacing / length / loudness per candidate |
 | ![danger](assets/danger_region.png) | spacing vs parallel length, with the 3W danger line |
-| ![recall](assets/recall_validation.png) | recall ranks close matches above near-misses and filler |
 
 ---
 
@@ -192,7 +191,7 @@ edit to any query.
 ## Two agents, one engine
 
 The resolver in `agent.py` decides the step order itself. `agent_graph.py` hands the same three
-tools — `traverse_and_score`, `recall_similar`, `cite_fix` — to a LangGraph ReAct agent that
+tools (`traverse_and_score`, `recall_similar`, `cite_fix`) to a LangGraph ReAct agent that
 chooses the order. Same tools, same database, same answer: the engine is the data and the query,
 not the orchestration around it.
 
