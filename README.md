@@ -1,116 +1,168 @@
 # Explainable Crosstalk Diagnosis on Arango
 
-A signal-integrity agent that answers one question no single design-rule check can:
-**which physical adjacency on a board explains a frequency variation on a data lane, and how
-was that fault fixed before.**
+> A signal-integrity agent that finds the physical adjacency behind a board defect, ranks it,
+> and cites how it was fixed before — as one query over one multimodel store.
 
-A board defect is not a value in one table. It is a relationship between two nets: a power or
-clock line running too close to a data line, over a long enough run to couple noise into it.
-That relationship is an edge, not a row, which is why record-by-record checks pass while the
-board keeps failing. This build models the board as a graph, gives that graph a memory of past
-defects, and resolves both in a single query on the [Arango Contextual Data
-Platform](https://arango.ai/products/contextual-data-platform).
+<p align="center">
+  <em>A board defect is not a value in one table. It is a relationship between two nets.</em>
+</p>
+
+When a data lane shows frequency variation and a rising bit error rate, every trace passes its
+own design-rule check and the board still fails. The fault is not in any single net. It is a
+**power or clock line running too close to a data line**, over a long enough parallel run to
+couple noise into it. That proximity is an **edge, not a row**, which is exactly why
+record-by-record inspection misses it.
+
+This build models the board as a graph, gives that graph a memory of past defects, and resolves
+both in a single [AQL](https://docs.arango.ai/arangodb/stable/aql/) query on the
+[Arango Contextual Data Platform](https://arango.ai/products/contextual-data-platform).
+
+---
+
+## Architecture
+
+![Architecture](assets/architecture.png)
+
+One store holds three data shapes, and one query path turns a symptom into an explainable,
+cited cause:
+
+- **Design graph** — the KiCad board parsed into nets (nodes) and adjacency edges carrying
+  spacing, parallel length, layer, and trace width.
+- **Vector store** — past defect reports embedded for similarity recall via `APPROX_NEAR_COSINE`.
+- **Knowledge graph** — built by [AutoGraph](https://docs.arango.ai/agentic-ai-suite/autograph/)
+  from the same corpus, cited through the
+  [GraphRAG Retriever](https://docs.arango.ai/agentic-ai-suite/graphrag/).
+
+The agent recalls similar defects, traverses to the physical neighbors, **scores** each
+candidate, **judges** which one explains the symptom, and returns a **cited fix**. The graph
+proves the geometry; the agent interprets the cause.
 
 ---
 
 ## The hero fault
 
-Point the engine at a real Raspberry Pi CM4 IO board and it finds, on its own, the worst
-adjacency:
+Point the engine at a real Raspberry Pi CM4 IO board with `python src/agent.py auto`. It scans
+every adjacency, scores each one, and diagnoses the worst — no victim is hardcoded:
 
 ```
-victim     /CM4_HighSpeed/DSI1_D0_N   (data)
-aggressor  /CM4_HighSpeed/DSI0_C_P    (clock)
-spacing 0.42 mm   parallel 43.3 mm   layer B.Cu   severity 0.587  [corroborated]
+=== VICTIM ===
+DSI1_D0_N (net_47)  symptom: frequency variation and rising bit error rate
+
+=== CANDIDATES (ranked, proved) ===
+  DSI0_C_P   sev 0.5873  [leading]    clock   gap 0.42mm  len 43.3mm  B.Cu
+  DSI0_C_N   sev 0.4487  [unlikely]   clock   gap 0.80mm  len 43.3mm  B.Cu
+
+=== RECALLED CASES ===
+  Frequency variation traced to an impedance mismatch      <- same symptom, wrong cause
+  Camera lane jitter from an adjacent high-speed signal
+  Clock-to-data coupling over a long adjacent run
+
+=== JUDGE (interpretation, a hypothesis) ===
+  chosen: DSI0_C_P
+  judge confidence: medium  ->  finding tier [corroborated]
+  reasoning: DSI0_C_P runs on the same outer copper for 43.3 mm at 0.42 mm, a clock
+  whose fast edges couple into a neighbouring data lane, matching the symptom.
+
+=== CITED FIX (retriever) ===
+  Increase local spacing; add a grounded guard trace with stitching vias; or reroute
+  the aggressor to an inner layer. [cites the clock-coupling reports]
+
+=== CORROBORATION ===
+  mechanism converged : True
+  verdict             : AGREE - graph and citation point at the same story
 ```
 
-A DSI clock lane running 43 mm alongside a data lane from a different camera interface, 0.42 mm
-apart on the bottom copper layer. Every trace passes its own check; the fault lives only in the
-relationship between the two.
+A DSI clock lane running 43 mm alongside a data lane from a *different* camera interface, 0.42 mm
+apart on the bottom layer. The top vector match ("impedance mismatch") is the **wrong** cause,
+sharing the symptom but not the geometry — and the graph corrects it.
 
 ![Board severity map](assets/board_severity_map.png)
 
 ---
 
-## How it works
+## Why this architecture
 
-Three data shapes live in one store, and one query reads all three:
+The finding rests on **two independent surfaces agreeing**. The graph-and-judge chose the clock
+coupling from geometry and reasoning. The Retriever, reading only the chosen cause, cited past
+reports about the same mechanism from the knowledge graph. Neither was told the other's answer,
+and they converged.
 
-- **A design graph** parsed from the real KiCad board: nets as nodes, close parallel runs as
-  adjacency edges carrying spacing, length, layer, and trace width.
-- **Vector recall** over a corpus of past defect reports, embedded for similarity search with
-  `APPROX_NEAR_COSINE`.
-- **A knowledge graph** built by AutoGraph from the same corpus, queried through the GraphRAG
-  Retriever, that cites the fix behind a fault.
+That convergence is the payoff of one multimodel store. A split stack — a graph database beside
+a vector database — runs two queries, holds partial results in application code, and rebuilds the
+join that finds the fault on every request. A vector-only tool has no topology to traverse and
+cannot tell a real adjacency from a look-alike report. Two different shapes of the same store,
+reaching the same mechanism independently, is the confidence a fragmented stack has no way to
+reach.
 
-The agent embeds the symptom, recalls similar past defects, traverses the design graph, scores
-each candidate adjacency, judges which one explains the symptom, and returns a cited fix. The
-graph proves the geometry; the agent interprets which adjacency is the cause, and the finding is
-capped at `corroborated` until hardware confirms it.
+![Severity decomposition](assets/severity_decomposition.png)
+
+The severity score weighs spacing and parallel length equally, because crosstalk accumulates
+along a coupled run. The hero scores **high on length and loudness, low on spacing** — the exact
+profile a proximity-only check misses.
 
 ---
 
 ## Quickstart
 
 ```bash
-# 1. clone and enter the repo
+# clone and enter
 git clone <your-repo-url> crosstalk-agent
 cd crosstalk-agent
 
-# 2. create and activate a virtual environment
+# virtual environment
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+source venv/bin/activate            # Windows: venv\Scripts\activate
 
-# 3. install dependencies
+# dependencies
 pip install -r requirements.txt
 
-# 4. configure credentials
-cp .env.example .env
-#   then edit .env with your Arango, OpenAI, and (optional) Retriever details
+# credentials
+cp .env.example .env                # then edit with your details
 ```
 
-`.env` holds the connection details:
-
 ```
+# .env
 ARANGO_HOST=https://<your-deployment>.arangodb.cloud
 ARANGO_DB=crosstalk_v1
 ARANGO_USER=root
 ARANGO_PASSWORD=<your-password>
 OPENAI_API_KEY=<your-key>
-
-# Set after deploying the Retriever; until then the agent falls back to a local citation.
-RETRIEVER_ID=
+RETRIEVER_ID=                       # set after deploying the Retriever
 RETRIEVER_BASE=
 ```
 
-Then build the data and run the diagnosis:
+Build the data and run the diagnosis:
 
 ```bash
-python src/prepare_autograph.py     # write the synthetic defect corpus (30 reports)
-python src/ingest.py                # parse the board, load the graph + vectors + index
-python src/agent.py auto            # scan the board and diagnose the worst adjacency
-python src/agent.py auto --deep     # same, with Deep Search for a fuller cited playbook
+python src/prepare_autograph.py     # 1. write the synthetic defect corpus (30 reports)
+python src/ingest.py                # 2. parse the board, load graph + vectors + index
+python src/agent.py auto            # 3. scan the board, diagnose the worst adjacency
+python src/agent.py auto --deep     # 3b. same, with Deep Search for a fuller cited playbook
 ```
 
-To build the knowledge graph the Retriever cites from, upload `data/autograph/*.md` to
-**AutoGraph Studio** in the Arango web interface, build the graph with
-`text-embedding-3-small`, deploy the Retriever, and set `RETRIEVER_ID` / `RETRIEVER_BASE` in
-`.env`. The pipeline runs either way; without the Retriever it uses a local corpus citation.
+**Step 2** reports `{'nets': 73, 'adjacencies': 10, 'defect_reports': 30, 'dimension': 1536}`.
+Of 75 candidate net pairs, 65 are intended routing (differential pairs and same-interface buses)
+and are skipped; the 10 that remain are the real cross-interface adjacencies.
+
+To enable cited fixes, upload `data/autograph/*.md` to **AutoGraph Studio** in the Arango web
+interface, build the graph with `text-embedding-3-small`, deploy the Retriever, and set
+`RETRIEVER_ID` / `RETRIEVER_BASE`. Without it, the agent falls back to a local corpus citation
+and the rest of the pipeline runs unchanged.
 
 ---
 
 ## The notebook
 
-`crosstalk_analysis.ipynb` runs the whole pipeline end to end, cell by cell, and closes with
-five figures saved to `assets/`:
+`crosstalk_analysis.ipynb` runs the whole pipeline end to end, cell by cell, from a fresh
+database to the final figures. It closes with five visuals, all saved to `assets/`:
 
 | figure | what it shows |
 |---|---|
-| `board_severity_map.png` | every real adjacency, colored by class, sized by severity |
-| `severity_ranking.png` | the ten adjacencies ranked; the hero clears the field |
-| `severity_decomposition.png` | spacing / length / loudness contribution per candidate |
-| `danger_region.png` | spacing vs parallel length, with the 3W danger line |
-| `recall_validation.png` | recall ranks close-match cases above near-misses and filler |
+| ![map](assets/board_severity_map.png) | every real adjacency, colored by class, sized by severity |
+| ![rank](assets/severity_ranking.png) | the ten adjacencies ranked; the hero clears the field |
+| ![decomp](assets/severity_decomposition.png) | spacing / length / loudness per candidate |
+| ![danger](assets/danger_region.png) | spacing vs parallel length, with the 3W danger line |
+| ![recall](assets/recall_validation.png) | recall ranks close matches above near-misses and filler |
 
 ---
 
@@ -118,21 +170,31 @@ five figures saved to `assets/`:
 
 ```
 src/
-  config.py             every knob: net classes, the 3W rule, severity weights
-  parse_board.py        KiCad board -> nets and adjacency edges
+  config.py             every knob: net classes, the 3W rule, severity weights, tiers
+  parse_board.py        KiCad board -> nets and adjacency edges (skips intended routing)
   ingest.py             load the graph, embed the corpus, build the vector index
   prepare_autograph.py  generate the synthetic defect corpus for AutoGraph
   agent.py              the resolver: recall, traverse, score, judge, cite, corroborate
-  agent_graph.py        the same investigation driven by a LangGraph ReAct agent
+  agent_graph.py        the same investigation, driven by a LangGraph ReAct agent
 data/
   CM4IOUSB3.kicad_pcb   the board
-  autograph/            the generated corpus (markdown + manifest)
-assets/                 figures saved by the notebook
+  autograph/            the generated corpus (markdown + manifest.json)
+assets/                 architecture diagram + figures saved by the notebook
 crosstalk_analysis.ipynb
 ```
 
-Everything the engine turns lives in `config.py`. Change the board, the spacing rule, or the
-severity weights there and the whole pipeline follows, with no edit to any query.
+Every knob the engine turns lives in `config.py`. Swap your own process design kit's spacing
+rule into the 3W threshold, point the parser at your board, and the ranking retunes with no
+edit to any query.
+
+---
+
+## Two agents, one engine
+
+The resolver in `agent.py` decides the step order itself. `agent_graph.py` hands the same three
+tools — `traverse_and_score`, `recall_similar`, `cite_fix` — to a LangGraph ReAct agent that
+chooses the order. Same tools, same database, same answer: the engine is the data and the query,
+not the orchestration around it.
 
 ---
 
@@ -145,5 +207,6 @@ on silicon. The board is real geometry; the defect corpus is synthetic and label
 the build demonstrates the method rather than real hardware history.
 
 The same traversal extends to impedance mismatch, return-path discontinuity, and power-integrity
-issues, because each is a relationship in the same graph. Any board with routed nets works
-without touching the query; only the graph grows.
+issues, because each is a relationship in the same graph. Run it earlier and it becomes a
+design-rule check: the parser reads a layout in progress and flags an adjacency the day it is
+routed, before any board is fabricated.
