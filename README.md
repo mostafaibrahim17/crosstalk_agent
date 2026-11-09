@@ -146,8 +146,10 @@ and are skipped; the 10 that remain are the real cross-interface adjacencies.
 
 To enable cited fixes, upload `data/autograph/*.md` to **AutoGraph Studio** in the Arango web
 interface, build the graph with `text-embedding-3-small`, deploy the Retriever, and set
-`RETRIEVER_ID` / `RETRIEVER_BASE`. Without it, the agent falls back to a local corpus citation
-and the rest of the pipeline runs unchanged.
+`RETRIEVER_ID` / `RETRIEVER_BASE`. The step-by-step walkthrough is in
+[docs/setting-up-autograph-and-the-retriever.md](docs/setting-up-autograph-and-the-retriever.md).
+Without it, the agent falls back to a local corpus citation and the rest of the pipeline runs
+unchanged.
 
 ---
 
@@ -178,6 +180,8 @@ src/
 data/
   CM4IOUSB3.kicad_pcb   the board
   autograph/            the generated corpus (markdown + manifest.json)
+docs/
+  setting-up-autograph-and-the-retriever.md   AutoGraph + Retriever provisioning walkthrough
 assets/                 architecture diagram + figures saved by the notebook
 crosstalk_analysis.ipynb
 ```
